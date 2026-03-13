@@ -106,7 +106,7 @@ function render() {
         <tr>
             <td>
                 <div class="user-cell">
-                    <img class="avatar" src="${l.img}" onerror="this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_bigger.png'">
+                    <img class="avatar" src="${l.img}" onerror="this.onerror=null; this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_bigger.png'">
                     <div class="user-info">
                         <a href="https://x.com/${l.u}" target="_blank" class="user-link">@${l.u}</a>
                         <div class="user-name">${l.n}</div>
@@ -122,7 +122,7 @@ function render() {
     `).join('');
     
     renderPagination();
-    document.getElementById('count').innerText = \`Showing \${currentData.length > 0 ? start + 1 : 0}-\${Math.min(end, currentData.length)} of \${currentData.length} leads\`;
+    document.getElementById('count').innerText = `Showing ${currentData.length > 0 ? start + 1 : 0}-${Math.min(end, currentData.length)} of ${currentData.length} leads`;
 }
 
 function renderPagination() {
@@ -130,12 +130,12 @@ function renderPagination() {
     let html = '';
     for(let i=1; i<=totalPages; i++) {
         if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
-            html += \`<button class="page-btn \${i===currentPage?'active':''}" onclick="setPage(\${i})">\${i}</button>\`;
+            html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="setPage(${i})">${i}</button>`;
         } else if (i === currentPage - 3 || i === currentPage + 3) {
-            html += \`<span style="color:#444">...</span>\`;
+            html += `<span style="color:#444">...</span>`;
         }
     }
-    html += \`<span class="page-info">Page \${currentPage}/\${totalPages}</span>\`;
+    html += `<span class="page-info">Page ${currentPage}/${totalPages}</span>`;
     document.getElementById('pagination').innerHTML = html;
 }
 
