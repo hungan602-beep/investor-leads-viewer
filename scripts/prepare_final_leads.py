@@ -281,12 +281,12 @@ function renderPagination() {{
             btn.textContent = i;
             btn.onclick = () => setPage(i);
             container.appendChild(btn);
-        } else if (i === currentPage - 3 || i === currentPage + 3) {{
+        }} else if (i === currentPage - 3 || i === currentPage + 3) {{
             const span = document.createElement('span');
             span.style.color = '#444';
             span.textContent = '...';
             container.appendChild(span);
-        }
+        }}
     }}
     
     const info = document.createElement('span');
