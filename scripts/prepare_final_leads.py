@@ -108,6 +108,12 @@ def prepare_leads():
     print(f"Leads still missing metadata: {count_zero_metadata}")
 
     # Generate Premium HTML
+    # Escape backticks in strings to prevent JS template literal breakage
+    for lead in leads_json_data:
+        for key in ['u', 'n', 'b', 'reason']:
+            if isinstance(lead.get(key), str):
+                lead[key] = lead[key].replace('`', '\\`').replace('${', '$\\{')
+
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -274,7 +280,7 @@ function applySort() {{
         if (typeof v1 === 'string') v1 = v1.toLowerCase();
         if (typeof v2 === 'string') v2 = v2.toLowerCase();
         if (v1 < v2) return sortDir === 'asc' ? -1 : 1;
-        if (v1 > v2) return dir === 'asc' ? 1 : -1;
+        if (v1 > v2) return sortDir === 'asc' ? 1 : -1;
         return 0;
     }});
     
