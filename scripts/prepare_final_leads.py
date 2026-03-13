@@ -185,7 +185,7 @@ tr:hover{{background:#161616}}
 <div class="count" id="count"></div>
 
 <div class="table-wrap">
-<table>
+<table id="leads-table">
 <thead>
 <tr>
   <th data-col="u" onclick="toggleSort('u')">User</th>
@@ -199,6 +199,26 @@ tr:hover{{background:#161616}}
 <tbody id="tbody"></tbody>
 </table>
 </div>
+
+<template id="row-template">
+    <tr>
+        <td>
+            <div class="user-cell">
+                <img class="avatar" src="" onerror="this.onerror=null; this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_bigger.png'">
+                <div class="user-info">
+                    <a href="" target="_blank" class="user-link"></a>
+                    <div class="user-name"></div>
+                </div>
+            </div>
+        </td>
+        <td><div class="bio-cell"></div></td>
+        <td><div class="reason-cell"></div></td>
+        <td class="num fl-cell"></td>
+        <td class="num fg-cell"></td>
+        <td class="num"><span class="score score-cell"></span></td>
+    </tr>
+</template>
+
 <div class="pagination" id="pagination"></div>
 
 <script id="leads-data" type="application/json">
@@ -217,44 +237,62 @@ function render() {{
     const start = (currentPage - 1) * pageSize;
     const end = start + pageSize;
     const pageData = currentData.slice(start, end);
+    const tbody = document.getElementById('tbody');
+    const template = document.getElementById('row-template');
     
-    document.getElementById('tbody').innerHTML = pageData.map(l => `
-        <tr>
-            <td>
-                <div class="user-cell">
-                    <img class="avatar" src="${{l.img}}" onerror="this.onerror=null; this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_bigger.png'">
-                    <div class="user-info">
-                        <a href="https://x.com/${{l.u}}" target="_blank" class="user-link">@${{l.u}}</a>
-                        <div class="user-name">${{l.n}}</div>
-                    </div>
-                </div>
-            </td>
-            <td><div class="bio-cell">${{l.b || ''}}</div></td>
-            <td><div class="reason-cell">${{l.reason || ''}}</div></td>
-            <td class="num">${{l.fl.toLocaleString()}}</td>
-            <td class="num">${{l.fg.toLocaleString()}}</td>
-            <td class="num"><span class="score">${{l.s.toFixed(2)}}</span></td>
-        </tr>
-    `).join('');
+    tbody.innerHTML = '';
+    
+    pageData.forEach(l => {{
+        const clone = template.content.cloneNode(true);
+        const row = clone.querySelector('tr');
+        
+        const avatar = clone.querySelector('.avatar');
+        avatar.src = l.img;
+        
+        const link = clone.querySelector('.user-link');
+        link.href = 'https://x.com/' + l.u;
+        link.textContent = '@' + l.u;
+        
+        clone.querySelector('.user-name').textContent = l.n || 'No Name';
+        clone.querySelector('.bio-cell').textContent = l.b || '';
+        clone.querySelector('.reason-cell').innerHTML = '<strong>AI Reasoning:</strong> ' + (l.reason || '');
+        clone.querySelector('.fl-cell').textContent = (l.fl || 0).toLocaleString();
+        clone.querySelector('.fg-cell').textContent = (l.fg || 0).toLocaleString();
+        clone.querySelector('.score-cell').textContent = (l.s || 0).toFixed(2);
+        
+        tbody.appendChild(clone);
+    }});
     
     renderPagination();
     const startNum = currentData.length > 0 ? start + 1 : 0;
     const endNum = Math.min(end, currentData.length);
-    document.getElementById('count').innerText = `Showing ${{startNum}}-${{endNum}} of ${{currentData.length}} leads`;
+    document.getElementById('count').innerText = 'Showing ' + startNum + '-' + endNum + ' of ' + currentData.length + ' leads';
 }}
 
 function renderPagination() {{
     const totalPages = Math.ceil(currentData.length / pageSize);
-    let html = '';
+    const container = document.getElementById('pagination');
+    container.innerHTML = '';
+    
     for(let i=1; i<=totalPages; i++) {{
         if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {{
-            html += `<button class="page-btn ${{i===currentPage?'active':''}}" onclick="setPage(${{i}})">${{i}}</button>`;
-        }} else if (i === currentPage - 3 || i === currentPage + 3) {{
-            html += `<span style="color:#444">...</span>`;
-        }}
+            const btn = document.createElement('button');
+            btn.className = 'page-btn ' + (i === currentPage ? 'active' : '');
+            btn.textContent = i;
+            btn.onclick = () => setPage(i);
+            container.appendChild(btn);
+        } else if (i === currentPage - 3 || i === currentPage + 3) {{
+            const span = document.createElement('span');
+            span.style.color = '#444';
+            span.textContent = '...';
+            container.appendChild(span);
+        }
     }}
-    html += `<span class="page-info">Page ${{currentPage}}/${{totalPages}}</span>`;
-    document.getElementById('pagination').innerHTML = html;
+    
+    const info = document.createElement('span');
+    info.className = 'page-info';
+    info.textContent = 'Page ' + currentPage + '/' + totalPages;
+    container.appendChild(info);
 }}
 
 function setPage(p) {{ currentPage = p; render(); window.scrollTo(0,0); }}
@@ -304,10 +342,10 @@ function applySort() {{
 document.getElementById('search').oninput = (e) => {{
     const term = e.target.value.toLowerCase();
     currentData = DATA.filter(l => 
-        l.u.toLowerCase().includes(term) || 
-        l.n.toLowerCase().includes(term) || 
-        l.b.toLowerCase().includes(term) || 
-        l.reason.toLowerCase().includes(term)
+        (l.u && l.u.toLowerCase().includes(term)) || 
+        (l.n && l.n.toLowerCase().includes(term)) || 
+        (l.b && l.b.toLowerCase().includes(term)) || 
+        (l.reason && l.reason.toLowerCase().includes(term))
     );
     currentPage = 1;
     render();
