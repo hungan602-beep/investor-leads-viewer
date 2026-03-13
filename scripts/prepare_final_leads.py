@@ -218,29 +218,29 @@ function render() {{
     const end = start + pageSize;
     const pageData = currentData.slice(start, end);
     
-    document.getElementById('tbody').innerHTML = pageData.map(l => 
-        '<tr>' +
-            '<td>' +
-                '<div class="user-cell">' +
-                    '<img class="avatar" src="' + l.img + '" onerror="this.onerror=null; this.src=\'https://abs.twimg.com/sticky/default_profile_images/default_profile_bigger.png\'">' +
-                    '<div class="user-info">' +
-                        '<a href="https://x.com/' + l.u + '" target="_blank" class="user-link">@' + l.u + '</a>' +
-                        '<div class="user-name">' + l.n + '</div>' +
-                    '</div>' +
-                '</div>' +
-            '</td>' +
-            '<td><div class="bio-cell">' + (l.b || '') + '</div></td>' +
-            '<td><div class="reason-cell">' + (l.reason || '') + '</div></td>' +
-            '<td class="num">' + l.fl.toLocaleString() + '</td>' +
-            '<td class="num">' + l.fg.toLocaleString() + '</td>' +
-            '<td class="num"><span class="score">' + l.s.toFixed(2) + '</span></td>' +
-        '</tr>'
-    ).join('');
+    document.getElementById('tbody').innerHTML = pageData.map(l => `
+        <tr>
+            <td>
+                <div class="user-cell">
+                    <img class="avatar" src="${{l.img}}" onerror="this.onerror=null; this.src='https://abs.twimg.com/sticky/default_profile_images/default_profile_bigger.png'">
+                    <div class="user-info">
+                        <a href="https://x.com/${{l.u}}" target="_blank" class="user-link">@${{l.u}}</a>
+                        <div class="user-name">${{l.n}}</div>
+                    </div>
+                </div>
+            </td>
+            <td><div class="bio-cell">${{l.b || ''}}</div></td>
+            <td><div class="reason-cell">${{l.reason || ''}}</div></td>
+            <td class="num">${{l.fl.toLocaleString()}}</td>
+            <td class="num">${{l.fg.toLocaleString()}}</td>
+            <td class="num"><span class="score">${{l.s.toFixed(2)}}</span></td>
+        </tr>
+    `).join('');
     
     renderPagination();
     const startNum = currentData.length > 0 ? start + 1 : 0;
     const endNum = Math.min(end, currentData.length);
-    document.getElementById('count').innerText = 'Showing ' + startNum + '-' + endNum + ' of ' + currentData.length + ' leads';
+    document.getElementById('count').innerText = `Showing ${{startNum}}-${{endNum}} of ${{currentData.length}} leads`;
 }}
 
 function renderPagination() {{
@@ -248,13 +248,12 @@ function renderPagination() {{
     let html = '';
     for(let i=1; i<=totalPages; i++) {{
         if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {{
-            const activeClass = i === currentPage ? 'active' : '';
-            html += '<button class="page-btn ' + activeClass + '" onclick="setPage(' + i + ')">' + i + '</button>';
+            html += `<button class="page-btn ${{i===currentPage?'active':''}}" onclick="setPage(${{i}})">${{i}}</button>`;
         }} else if (i === currentPage - 3 || i === currentPage + 3) {{
-            html += '<span style="color:#444">...</span>';
+            html += `<span style="color:#444">...</span>`;
         }}
     }}
-    html += '<span class="page-info">Page ' + currentPage + '/' + totalPages + '</span>';
+    html += `<span class="page-info">Page ${{currentPage}}/${{totalPages}}</span>`;
     document.getElementById('pagination').innerHTML = html;
 }}
 
