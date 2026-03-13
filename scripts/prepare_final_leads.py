@@ -107,12 +107,12 @@ def prepare_leads():
     print(f"Total leads prepared: {len(leads_json_data)}")
     print(f"Leads still missing metadata: {count_zero_metadata}")
 
-    # Generate Premium HTML
-    # Escape backticks in strings to prevent JS template literal breakage
+    # Clean text for JSON safety
     for lead in leads_json_data:
-        for key in ['u', 'n', 'b', 'reason']:
+        for key in ['n', 'b', 'reason']:
             if isinstance(lead.get(key), str):
-                lead[key] = lead[key].replace('`', '\\`').replace('${', '$\\{')
+                # Remove newlines that can break some parsers, even if JSON escaped
+                lead[key] = lead[key].replace('\n', ' ').strip()
 
     html_content = f"""<!DOCTYPE html>
 <html lang="en">
@@ -201,8 +201,12 @@ tr:hover{{background:#161616}}
 </div>
 <div class="pagination" id="pagination"></div>
 
+<script id="leads-data" type="application/json">
+{json.dumps(leads_json_data)}
+</script>
+
 <script>
-const DATA = {json.dumps(leads_json_data)};
+const DATA = JSON.parse(document.getElementById('leads-data').textContent);
 let currentData = [...DATA];
 let pageSize = 50;
 let currentPage = 1;
