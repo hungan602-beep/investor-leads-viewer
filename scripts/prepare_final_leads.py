@@ -98,18 +98,53 @@ def load_all_metadata():
 
     return metadata_map
 
-def prepare_leads():
-    print(f"Loading AI results from {V3_RESULTS_FILE}...")
-    if not os.path.exists(V3_RESULTS_FILE):
-        print(f"CRITICAL: {V3_RESULTS_FILE} not found.")
-        return
-
-    with open(V3_RESULTS_FILE, 'r', encoding='utf-8') as f:
-        v3_data = json.load(f)
+def load_leads():
+    """Loads all human leads from multiple validation files and normalizes them."""
+    leads = []
+    validation_files = [
+        os.path.join(DETECT_DIR, "data", "validation_results_v3.json"),
+        os.path.join(DETECT_DIR, "data", "validation_terafab_501.json")
+    ]
     
-    all_results = v3_data.get('results', [])
-    v3_humans = [r for r in all_results if r.get('claude_label', '').lower() == 'human']
-    print(f"Found {len(v3_humans)} 'human' leads from AI validation.")
+    for v_file in validation_files:
+        if not os.path.exists(v_file):
+            print(f"Skipping missing validation file: {v_file}")
+            continue
+            
+        print(f"Loading AI results from {v_file}...")
+        try:
+            with open(v_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # Identify format and extract results
+            results = data.get('results', [])
+            for r in results:
+                # Normalize label
+                label = r.get('label') or r.get('claude_label') or ''
+                if label.lower() != 'human':
+                    continue
+                    
+                # Normalize fields
+                leads.append({
+                    "username": r.get("username"),
+                    "label": label,
+                    "reason": r.get("reason") or r.get("claude_reason") or "",
+                    "confidence": r.get("confidence") or r.get("claude_confidence") or 0,
+                    "ml_score": r.get("ml_score", 0.95) # Default high for R1
+                })
+        except Exception as e:
+            print(f"Error loading {v_file}: {e}")
+            
+    # Deduplicate by username if needed (prefer newer validation)
+    final_map = {}
+    for l in leads:
+        final_map[l["username"].lower()] = l
+        
+    return list(final_map.values())
+
+def prepare_leads():
+    v_humans = load_leads()
+    print(f"Found {len(v_humans)} 'human' leads from all AI validation sources.")
 
     metadata_map = load_all_metadata()
     print(f"Total reference profiles loaded: {len(metadata_map)}")
@@ -118,7 +153,7 @@ def prepare_leads():
     leads_json_data = []
     count_zero_metadata = 0
     
-    for r in v3_humans:
+    for r in v_humans:
         u = r['username']
         m = metadata_map.get(u, {})
         
@@ -140,8 +175,8 @@ def prepare_leads():
             "img": (m.get("profile_image") or "").replace("_normal", "_bigger"),
             "year": m.get("year", 0),
             "d": m.get("last_tweet_days", 999),
-            "reason": r.get("claude_reason", "").replace('"', "'"),
-            "conf": r.get("claude_confidence", 0)
+            "reason": r.get("reason", "").replace('"', "'"),
+            "conf": r.get("confidence", 0)
         })
 
     print(f"Total leads prepared: {len(leads_json_data)}")
