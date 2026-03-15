@@ -28,14 +28,33 @@ def get_year(date_str):
         return "N/A"
 
 def generate_html(leads):
-    leads_json = json.dumps(leads, ensure_ascii=False)
+    total_followers = sum(p.get('followers', 0) for p in leads)
+    avg_followers = int(total_followers / len(leads)) if leads else 0
+
+    processed_leads = []
+    for p in leads:
+        processed_leads.append({
+            "u": p.get('userName', ''),
+            "n": p.get('name', ''),
+            "b": p.get('description', ''),
+            "s": p.get('deepseek_qualification', {}).get('investor_score', 0),
+            "fl": p.get('followers', 0),
+            "fg": p.get('following', 0),
+            "tw": p.get('statusesCount', 0),
+            "img": p.get('profilePicture', ''),
+            "year": get_year(p.get('createdAt', '')),
+            "reason": p.get('deepseek_qualification', {}).get('reason', ''),
+            "conf": p.get('deepseek_qualification', {}).get('confidence', 90)
+        })
+
+    leads_json = json.dumps(processed_leads, ensure_ascii=False)
     
     html_template = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>CaptainEli Qualified Leads Dashboard</title>
+<title>Terafab Human Leads Dashboard</title>
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0a0a0a;color:#e0e0e0;padding:12px;line-height:1.5}}
@@ -82,19 +101,19 @@ tr:hover{{background:#161616}}
 </head>
 <body>
 <div class="header">
-    <h1>CaptainEli Qualified Leads</h1>
-    <div class="sub">Verified Humans | Qualified for Outreach | 566 Leads</div>
+    <h1>Terafab Human Leads Dashboard</h1>
+    <div class="sub">Human-only results | AI-Validated | High Potential Leads</div>
 </div>
 
 <div class="stats">
     <div class="stat-card"><div class="val">{len(leads)}</div><div class="label">Total Humans</div></div>
-    <div class="stat-card"><div class="val">566</div><div class="label">Qualified</div></div>
+    <div class="stat-card"><div class="val">{avg_followers}</div><div class="label">Avg Followers</div></div>
 </div>
 
 <div class="controls">
     <input type="text" class="search" id="search" placeholder="Search name, handle, bio, or reason...">
     <button class="sort-btn active" id="btn-fl" onclick="setSort('fl','desc')">Most Followers</button>
-    <button class="sort-btn" id="btn-s" onclick="setSort('s','desc')">High Recency</button>
+    <button class="sort-btn" id="btn-s" onclick="setSort('s','desc')">High Score</button>
 </div>
 
 <div class="count" id="count"></div>
@@ -105,11 +124,11 @@ tr:hover{{background:#161616}}
             <tr>
                 <th data-col="u">User</th>
                 <th data-col="b" class="hide-tablet">Bio</th>
-                <th data-col="reason" class="hide-mobile">DeepSeek Reasoning</th>
+                <th data-col="reason" class="hide-mobile">AI Reasoning</th>
                 <th data-col="fl" class="num">Followers</th>
                 <th data-col="tw" class="num hide-mobile">Tweets</th>
                 <th data-col="year" class="num hide-mobile">Since</th>
-                <th data-col="d" class="num">Active</th>
+                <th data-col="s" class="num">Score</th>
             </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -149,15 +168,15 @@ function setSort(key, dir){{
 function apply(){{
     const q = $('search').value.toLowerCase();
     filtered = DATA.filter(p => {{
-        const reason = p.deepseek_qualification?.reason || '';
-        return (p.userName + ' ' + (p.name||'') + ' ' + (p.description||'') + ' ' + reason).toLowerCase().includes(q);
+        const reason = p.reason || '';
+        return (p.u + ' ' + (p.n||'') + ' ' + (p.b||'') + ' ' + reason).toLowerCase().includes(q);
     }});
     
     filtered.sort((a,b) => {{
         let v1, v2;
         if (sortKey === 's') {{
-            v1 = a.last_tweet_days === undefined ? 9999 : a.last_tweet_days;
-            v2 = b.last_tweet_days === undefined ? 9999 : b.last_tweet_days;
+            v1 = a.s === undefined ? 0 : a.s;
+            v2 = b.s === undefined ? 0 : b.s;
             return sortDir === 'asc' ? v1 - v2 : v2 - v1;
         }} else if (sortKey === 'year') {{
             v1 = getYear(a.createdAt);
@@ -184,27 +203,31 @@ function render(){{
     const slice = filtered.slice(start, end);
     
     $('tbody').innerHTML = slice.map(p => {{
-        const reason = p.deepseek_qualification?.reason || '';
-        const year = getYear(p.createdAt);
-        const active = activeText(p.last_tweet_days);
+        const reason = p.reason || '';
+        const year = p.year || '2024';
+        const score = p.s || 0;
         
         return `
             <tr>
                 <td>
                     <div class="user-cell">
-                        <div class="avatar-placeholder">${{p.userName[0].toUpperCase()}}</div>
+                        <div class="avatar-placeholder">${{p.u[0].toUpperCase()}}</div>
                         <div class="user-info">
-                            <a href="https://x.com/${{p.userName}}" target="_blank" class="user-link">@${{p.userName}}</a>
-                            <div class="user-name">${{p.name}}</div>
+                            <a href="https://x.com/${{p.u}}" target="_blank" class="user-link">@${{p.u}}</a>
+                            <div class="user-name">${{p.n}}</div>
                         </div>
                     </div>
                 </td>
-                <td class="bio-cell">${{p.description || ''}}</td>
+                <td class="bio-cell">${{p.b || ''}}</td>
                 <td class="reason-cell">${{reason}}</td>
-                <td class="num">${{(p.followers || 0).toLocaleString()}}</td>
-                <td class="num hide-mobile">${{(p.statusesCount || 0).toLocaleString()}}</td>
+                <td class="num">${{(p.fl || 0).toLocaleString()}}</td>
+                <td class="num hide-mobile">${{(p.tw || 0).toLocaleString()}}</td>
                 <td class="num hide-mobile">${{year}}</td>
-                <td class="num">${{active}}</td>
+                <td class="num">
+                    <span style="color:${{p.s > 0.8 ? '#66bb6a' : p.s > 0.5 ? '#ffa726' : '#ef5350'}}; font-weight:bold">
+                        ${{(p.s).toFixed(0)}}%
+                    </span>
+                </td>
             </tr>
         `;
     }}).join('');
