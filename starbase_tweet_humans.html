@@ -155,7 +155,7 @@ function render(){
   const slice=filtered.slice(start,start+PER_PAGE);
   let h='';
   for(const p of slice){
-    const imgHtml=p.img?'<img class="avatar" src="'+esc(p.img)+'" alt="" loading="lazy" onerror="this.outerHTML='<div class=avatar-placeholder>?</div>'">'
+    const imgHtml=p.img?'<img class="avatar" src="'+esc(p.img)+'" alt="" loading="lazy" onerror="this.remove()">'
       :'<div class="avatar-placeholder">?</div>';
     const srcBadge='<span class="src-badge src-'+esc(p.src)+'">'+esc(p.src)+'</span>';
     h+='<tr>'
